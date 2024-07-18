@@ -41,7 +41,7 @@ if submit and uploaded_file is not None:
         ax, cbar = mgr.showResult()
         st.write("### Inversion Result")
         st.pyplot(ax.figure)
-        mgr.saveResult("inv_result")
+        mgr.saveResult("tmp")
 
     st.write("## Step 2 : Thresholding & getting coordinates")
     import numpy as np
