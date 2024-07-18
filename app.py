@@ -18,8 +18,12 @@ if submit and uploaded_file is not None:
     import pygimli as pg
     from pygimli.physics import ert
     from matplotlib import pyplot as plt
+    from io import StringIO
 
-    data = ert.load("geophy/Panneau1.dat")
+    with open("tmp/ert.dat", "wb") as tmp:
+        tmp.write(uploaded_file.getvalue())
+
+    data = ert.load("tmp/ert.dat")
     st.write("### File Description")
     st.write(data)
     data['k'] = ert.createGeometricFactors(data, numerical=True)
@@ -45,7 +49,7 @@ if submit and uploaded_file is not None:
 
     with st.spinner("Thresholding water..."):
         st.write("### Thresholded water")
-        mesh = pv.read("inv_result/ERTManager/resistivity.vtk")
+        mesh = pv.read("tmp/ERTManager/resistivity.vtk")
         x,y,z = np.insert(np.delete(mesh.cell_centers().points, 2, axis=1), 2, mesh['Resistivity'], axis=1).transpose()
         z = np.array([ 0 if val < water_res_thres else 1 for val in z ])
         fig = plt.figure(figsize=(10, 7))
