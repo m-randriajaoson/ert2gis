@@ -6,10 +6,10 @@ st.write("""
 
 with st.form('computation'):
     uploaded_file = st.file_uploader('Upload raw data from sensors (*.dat)')
-    lat0 = st.number_input("Start point latitude", value=12.34)
-    lon0 = st.number_input("Start point longitude", value=56.78)
-    lat1 = st.number_input("Start point latitude", value=23.45)
-    lon1 = st.number_input("Start point latitude", value=67.89)
+    lat0 = st.number_input("Start point latitude", value=12.34, step=1e-13, format="%.13f")
+    lon0 = st.number_input("Start point longitude", value=56.78, step=1e-13, format="%.13f")
+    lat1 = st.number_input("End point latitude", value=23.45, step=1e-13, format="%.13f")
+    lon1 = st.number_input("End point longitude", value=67.89, step=1e-13, format="%.13f")
     water_res_thres = st.number_input("Choose a resistivity max threshold for water", value=200)
     submit = st.form_submit_button('Transform ERT to GeoJSON')
 
@@ -68,16 +68,18 @@ if submit and uploaded_file is not None:
     from geopy.point import Point
     from geopy import distance as geopy_distance
 
+    pd.set_option("display.precision", 13)
     with st.spinner("Getting EPSG:4326 coordinates..."):
         st.write("### Coordinates")
         _mul = np.array([ np.NaN if val == 1 else 1 for val in z ])
         df = pd.DataFrame(np.column_stack((x*_mul,y*_mul)))
         df = df.loc[df[0].notna()].set_axis(['X', 'depth'], axis=1)
         P0 = Point(lat0, lon0)
+        P1 = Point(lat1, lon1)
 
         def get_bearing(lat1, lat2, long1, long2):
             brng = Geodesic.WGS84.Inverse(lat1, long1, lat2, long2)['azi1']
-            return brng
+            return brng - 90
 
         bearing = get_bearing(lat0, lat1, lon0, lon1)
         print(f"Bearing from P0 to P1: {bearing} degrees")
@@ -89,4 +91,29 @@ if submit and uploaded_file is not None:
         new_df = pd.concat([df, df['X'].apply(append_coords)], axis=1).set_axis(['X', 'depth', 'lat_lon'], axis=1)
         new_df[['lat', 'lon']] = pd.DataFrame(new_df['lat_lon'].tolist(), index=df.index)
         new_df.drop(columns=['lat_lon'], inplace=True)
-        st.dataframe(new_df)
+        st.dataframe(new_df, column_config={"lat": st.column_config.NumberColumn(format="%.13f"), "lon": st.column_config.NumberColumn(format="%.13f")})
+
+        import json
+        def to_geojson(df):
+            def to_feature(df_line):
+                return {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [df_line['lon'], df_line['lat']]
+                    },
+                    "properties": {
+                        "depth": df_line['depth']
+                    }
+                }
+            geo_df = df.apply(to_feature, axis=1)
+            return json.dumps({
+                "type": "FeatureCollection",
+                "features": geo_df.to_numpy().tolist()
+            })
+        out_geojson = to_geojson(new_df)
+        st.map(new_df, size=5)
+        @st.experimental_fragment()
+        def down_geojson ():
+            st.download_button("Download as GeoJSON", data=out_geojson, file_name="water_points.json", mime="application/json")
+        down_geojson()
