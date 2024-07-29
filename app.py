@@ -6,10 +6,10 @@ st.write("""
 
 with st.form('computation'):
     uploaded_file = st.file_uploader('Upload raw data from sensors (*.dat)')
-    lat0 = st.number_input("Start point latitude", value=12.34, step=1e-13, format="%.13f")
-    lon0 = st.number_input("Start point longitude", value=56.78, step=1e-13, format="%.13f")
-    lat1 = st.number_input("End point latitude", value=23.45, step=1e-13, format="%.13f")
-    lon1 = st.number_input("End point longitude", value=67.89, step=1e-13, format="%.13f")
+    lat0 = st.number_input("Start point latitude", value=-13.711450057818931, step=1e-13, format="%.13f")
+    lon0 = st.number_input("Start point longitude", value=48.485899385521066, step=1e-13, format="%.13f")
+    lat1 = st.number_input("End point latitude", value=-13.711937336454291, step=1e-13, format="%.13f")
+    lon1 = st.number_input("End point longitude", value=48.4856177535745, step=1e-13, format="%.13f")
     water_res_thres = st.number_input("Choose a resistivity max threshold for water", value=200)
     submit = st.form_submit_button('Transform ERT to GeoJSON')
 
@@ -79,7 +79,7 @@ if submit and uploaded_file is not None:
 
         def get_bearing(lat1, lat2, long1, long2):
             brng = Geodesic.WGS84.Inverse(lat1, long1, lat2, long2)['azi1']
-            return brng - 90
+            return brng
 
         bearing = get_bearing(lat0, lat1, lon0, lon1)
         print(f"Bearing from P0 to P1: {bearing} degrees")
